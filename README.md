@@ -1,122 +1,30 @@
 # PE-PhotoEditor
 
-PE Photo Editor is a professional-looking Android photo editor inspired by PS Touch and Adobe-style mobile editing workflows.
+PE Photo Editor is an Android photo editor app inspired by PS Touch and Adobe-style mobile editing workflows. It is designed for modern Android devices and supports Android 8.0+.
 
-Features included in this version:
-- layered workflow and layer selection
-- theme studio with multiple visual palettes
-- image open/save flow
-- filters and adjustment controls
-- selection mode for basic editing workflows
-- Android 8+ compatibility
-- package name: com.broken.photoeditor
-
-This project is intended as a strong mobile editor base for future upgrades like crop, masks, text overlays, stickers, blend modes, and more advanced retouching.
-
-## Setup
-Open the project in Android Studio and sync Gradle.
-
-## App package
+## Package name
 com.broken.photoeditor
 
-## Minimum Android version
-Android 8.0 (API 26)
-
-## Main goal
-Provide a PS Touch-inspired editing experience with a polished modern UI and a foundation for pro editor workflows.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## Included features
+- layered workflow idea with add/remove/toggle layer controls
+- crop tool
+- rotate tool
+- text overlay tool
+- sticker overlay tool
+- before/after compare mode
+- multiple theme selections
+- filter presets and photo adjustments
+- export to PNG, JPEG, and WEBP
+- professional dark UI for editor workflows
+
+## Minimum version
+Android 8.0 (API level 26)
+
+## Open in Android Studio
+Open the project folder in Android Studio, let Gradle sync, and run the app on a connected device or emulator.
+
+## Notes
+This app is built as a strong, professional mobile editor foundation, with a polished interface and pro-editor workflow styling inspired by mobile creative tools.
 
 
 
@@ -686,6 +594,7 @@ n
 
 
 
+n
 
 
 
@@ -751,6 +660,7 @@ n
 
 
 
+n
 
 
 
@@ -779,90 +689,7 @@ n
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+n
 
 
 
@@ -1049,140 +876,8 @@ n
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+n
+} 
 
 
 
@@ -1366,10 +1061,326 @@ n
 
 
 
+n
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
 
 
 
@@ -1408,6 +1419,38 @@ n
 
 
 
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 n
 
 
@@ -1424,14 +1467,7 @@ n
 
 
 
-
-
-
-
-
-
-
-
+n
 
 
 
@@ -1446,3 +1482,183 @@ n
 
 
 n
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+n
+
+
+
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+n
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+n
+
+
+
+
+n
+
+
+
+n
+
+
+
+
+n
+
+
+
+n
+
+
+
+n
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+n
+
+
+
+
+n
+
+
+
+n
+
+
+
+
+"}]} ,{

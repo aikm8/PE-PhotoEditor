@@ -4,8 +4,10 @@ import android.content.ContentValues
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -28,30 +30,34 @@ import kotlin.math.roundToInt
 class MainActivity : AppCompatActivity() {
 
     private lateinit var rootLayout: LinearLayout
+    private lateinit var previewPanel: LinearLayout
     private lateinit var photoView: ImageView
+    private lateinit var statusText: TextView
     private lateinit var settingsButton: MaterialButton
     private lateinit var openButton: MaterialButton
     private lateinit var saveButton: MaterialButton
-    private lateinit var layerButton: MaterialButton
-    private lateinit var selectionButton: MaterialButton
+    private lateinit var cropButton: MaterialButton
+    private lateinit var rotateButton: MaterialButton
+    private lateinit var textButton: MaterialButton
+    private lateinit var stickerButton: MaterialButton
+    private lateinit var compareButton: MaterialButton
     private lateinit var addLayerButton: MaterialButton
     private lateinit var toggleLayerButton: MaterialButton
-    private lateinit var removeLayerButton: MaterialButton
+    private lateinit var deleteLayerButton: MaterialButton
     private lateinit var layerListContainer: LinearLayout
     private lateinit var themeMidnightButton: MaterialButton
     private lateinit var themeSunsetButton: MaterialButton
     private lateinit var themeForestButton: MaterialButton
     private lateinit var themeAuroraButton: MaterialButton
     private lateinit var themeClassicButton: MaterialButton
-    private lateinit var filterNormal: MaterialButton
-    private lateinit var filterBw: MaterialButton
-    private lateinit var filterWarm: MaterialButton
-    private lateinit var filterCool: MaterialButton
-    private lateinit var filterVintage: MaterialButton
-    private lateinit var brightnessSeekBar: SeekBar
-    private lateinit var contrastSeekBar: SeekBar
-    private lateinit var saturationSeekBar: SeekBar
-    private lateinit var selectionInfoText: TextView
+    private lateinit var filterNormalButton: MaterialButton
+    private lateinit var filterBwButton: MaterialButton
+    private lateinit var filterWarmButton: MaterialButton
+    private lateinit var filterCoolButton: MaterialButton
+    private lateinit var filterVintageButton: MaterialButton
+    private lateinit var brightnessSeek: SeekBar
+    private lateinit var contrastSeek: SeekBar
+    private lateinit var saturationSeek: SeekBar
 
     private data class ThemePalette(
         val background: Int,
@@ -59,7 +65,6 @@ class MainActivity : AppCompatActivity() {
         val imageSurface: Int,
         val primary: Int,
         val accent: Int,
-        val highlight: Int,
         val textPrimary: Int,
         val textSecondary: Int,
         val actionText: Int
@@ -75,12 +80,11 @@ class MainActivity : AppCompatActivity() {
     private enum class PhotoFilter { NORMAL, BLACK_AND_WHITE, WARM, COOL, VINTAGE }
 
     private var originalBitmap: Bitmap? = null
-    private var selectedFilter: PhotoFilter = PhotoFilter.NORMAL
     private var currentRotation = 0
     private var selectedLayerId = 1
     private var currentTheme = "Midnight"
-    private var selectionModeEnabled = false
-    private var selectionPreset = "Full Frame"
+    private var compareMode = false
+    private var selectedFilter = PhotoFilter.NORMAL
 
     private val layers = mutableListOf(
         EditorLayer(1, "Background", true, 1f),
@@ -94,19 +98,17 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show()
             return@registerForActivityResult
         }
-
         try {
             val inputStream: InputStream? = contentResolver.openInputStream(uri)
             val bitmap = BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
-
             if (bitmap != null) {
                 originalBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
                 currentRotation = 0
                 renderPreview()
                 Toast.makeText(this, "Image loaded successfully", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this, "Could not open the selected image", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Could not open selected image", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             Toast.makeText(this, "Image open failed: ${e.message}", Toast.LENGTH_LONG).show()
@@ -120,42 +122,46 @@ class MainActivity : AppCompatActivity() {
         bindViews()
         setupListeners()
         setupThemeButtons()
+        brightnessSeek.progress = 100
+        contrastSeek.progress = 100
+        saturationSeek.progress = 100
         setDefaultFilterSelection()
-        brightnessSeekBar.progress = 100
-        contrastSeekBar.progress = 100
-        saturationSeekBar.progress = 100
         updateLayerList()
-        selectionInfoText.text = "Selection: Full Frame"
         applyTheme(currentTheme)
+        statusText.text = "Ready • Full Frame"
         renderPreview()
     }
 
     private fun bindViews() {
         rootLayout = findViewById(R.id.rootLayout)
+        previewPanel = findViewById(R.id.previewPanel)
         photoView = findViewById(R.id.photoView)
+        statusText = findViewById(R.id.statusText)
         settingsButton = findViewById(R.id.settingsButton)
         openButton = findViewById(R.id.openButton)
         saveButton = findViewById(R.id.saveButton)
-        layerButton = findViewById(R.id.layerButton)
-        selectionButton = findViewById(R.id.selectionButton)
+        cropButton = findViewById(R.id.cropButton)
+        rotateButton = findViewById(R.id.rotateButton)
+        textButton = findViewById(R.id.textButton)
+        stickerButton = findViewById(R.id.stickerButton)
+        compareButton = findViewById(R.id.compareButton)
         addLayerButton = findViewById(R.id.addLayerButton)
         toggleLayerButton = findViewById(R.id.toggleLayerButton)
-        removeLayerButton = findViewById(R.id.removeLayerButton)
+        deleteLayerButton = findViewById(R.id.deleteLayerButton)
         layerListContainer = findViewById(R.id.layerListContainer)
         themeMidnightButton = findViewById(R.id.themeMidnight)
         themeSunsetButton = findViewById(R.id.themeSunset)
         themeForestButton = findViewById(R.id.themeForest)
         themeAuroraButton = findViewById(R.id.themeAurora)
         themeClassicButton = findViewById(R.id.themeClassic)
-        filterNormal = findViewById(R.id.filterNormal)
-        filterBw = findViewById(R.id.filterBlackWhite)
-        filterWarm = findViewById(R.id.filterWarm)
-        filterCool = findViewById(R.id.filterCool)
-        filterVintage = findViewById(R.id.filterVintage)
-        brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
-        contrastSeekBar = findViewById(R.id.contrastSeekBar)
-        saturationSeekBar = findViewById(R.id.saturationSeekBar)
-        selectionInfoText = findViewById(R.id.selectionInfoText)
+        filterNormalButton = findViewById(R.id.filterNormal)
+        filterBwButton = findViewById(R.id.filterBlackWhite)
+        filterWarmButton = findViewById(R.id.filterWarm)
+        filterCoolButton = findViewById(R.id.filterCool)
+        filterVintageButton = findViewById(R.id.filterVintage)
+        brightnessSeek = findViewById(R.id.brightnessSeekBar)
+        contrastSeek = findViewById(R.id.contrastSeekBar)
+        saturationSeek = findViewById(R.id.saturationSeekBar)
     }
 
     private fun setupThemeButtons() {
@@ -170,26 +176,50 @@ class MainActivity : AppCompatActivity() {
         settingsButton.setOnClickListener { showThemeDialog() }
         openButton.setOnClickListener { pickImage.launch("image/*") }
 
-        layerButton.setOnClickListener {
-            val current = layers.firstOrNull { it.id == selectedLayerId }
-            if (current != null) {
-                current.name = if (current.name.contains("Layer")) current.name else current.name + " Layer"
-                Toast.makeText(this, "Selected layer: ${current.name}", Toast.LENGTH_SHORT).show()
-                updateLayerList()
+        cropButton.setOnClickListener {
+            if (originalBitmap == null) {
+                Toast.makeText(this, "Load an image before cropping", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+            val cropped = cropSquare(originalBitmap!!)
+            originalBitmap = cropped
+            currentRotation = 0
+            renderPreview()
+            statusText.text = "Crop applied • Center focus"
+            Toast.makeText(this, "Image cropped to square", Toast.LENGTH_SHORT).show()
         }
 
-        selectionButton.setOnClickListener {
-            selectionModeEnabled = !selectionModeEnabled
-            if (selectionModeEnabled) {
-                selectionPreset = "Rectangular Selection"
-                selectionInfoText.text = "Selection: Rectangular Selection"
-                Toast.makeText(this, "Selection mode enabled", Toast.LENGTH_SHORT).show()
-            } else {
-                selectionPreset = "Full Frame"
-                selectionInfoText.text = "Selection: Full Frame"
-                Toast.makeText(this, "Selection mode disabled", Toast.LENGTH_SHORT).show()
+        rotateButton.setOnClickListener {
+            if (originalBitmap == null) {
+                Toast.makeText(this, "Open an image first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+            currentRotation = (currentRotation + 90) % 360
+            renderPreview()
+            statusText.text = "Rotation • ${currentRotation}°"
+        }
+
+        textButton.setOnClickListener {
+            if (originalBitmap == null) {
+                Toast.makeText(this, "Select an image first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            addTextOverlay("PRO")
+        }
+
+        stickerButton.setOnClickListener {
+            if (originalBitmap == null) {
+                Toast.makeText(this, "Select an image first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            addStickerOverlay()
+        }
+
+        compareButton.setOnClickListener {
+            compareMode = !compareMode
+            statusText.text = if (compareMode) "Compare • Before / After" else "Ready • Full Frame"
+            renderPreview()
+            Toast.makeText(this, if (compareMode) "Comparison mode enabled" else "Comparison mode disabled", Toast.LENGTH_SHORT).show()
         }
 
         addLayerButton.setOnClickListener {
@@ -197,7 +227,7 @@ class MainActivity : AppCompatActivity() {
             layers.add(EditorLayer(nextId, "Layer $nextId", true, 1f))
             selectedLayerId = nextId
             updateLayerList()
-            Toast.makeText(this, "Added layer ${nextId}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Added new layer", Toast.LENGTH_SHORT).show()
         }
 
         toggleLayerButton.setOnClickListener {
@@ -206,76 +236,52 @@ class MainActivity : AppCompatActivity() {
                 selected.visible = !selected.visible
                 Toast.makeText(this, "${selected.name} ${if (selected.visible) "visible" else "hidden"}", Toast.LENGTH_SHORT).show()
                 updateLayerList()
-                renderPreview()
             }
         }
 
-        removeLayerButton.setOnClickListener {
+        deleteLayerButton.setOnClickListener {
             if (layers.size <= 1) {
                 Toast.makeText(this, "At least one layer is required", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val targetIndex = layers.indexOfFirst { it.id == selectedLayerId }
-            if (targetIndex >= 0) {
-                layers.removeAt(targetIndex)
+            val index = layers.indexOfFirst { it.id == selectedLayerId }
+            if (index >= 0) {
+                layers.removeAt(index)
                 selectedLayerId = layers.first().id
                 updateLayerList()
-                Toast.makeText(this, "Layer removed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Layer deleted", Toast.LENGTH_SHORT).show()
             }
         }
 
-        saveButton.setOnClickListener {
-            val bitmap = renderEditedBitmap(originalBitmap)
-            if (bitmap != null) {
-                saveBitmapToGallery(bitmap)
-            } else {
-                Toast.makeText(this, "Load an image before saving", Toast.LENGTH_SHORT).show()
-            }
+        saveButton.setOnClickListener { showExportDialog() }
+
+        filterNormalButton.setOnClickListener {
+            selectedFilter = PhotoFilter.NORMAL; setDefaultFilterSelection(); renderPreview()
+        }
+        filterBwButton.setOnClickListener {
+            selectedFilter = PhotoFilter.BLACK_AND_WHITE; setDefaultFilterSelection(); renderPreview()
+        }
+        filterWarmButton.setOnClickListener {
+            selectedFilter = PhotoFilter.WARM; setDefaultFilterSelection(); renderPreview()
+        }
+        filterCoolButton.setOnClickListener {
+            selectedFilter = PhotoFilter.COOL; setDefaultFilterSelection(); renderPreview()
+        }
+        filterVintageButton.setOnClickListener {
+            selectedFilter = PhotoFilter.VINTAGE; setDefaultFilterSelection(); renderPreview()
         }
 
-        filterNormal.setOnClickListener {
-            selectedFilter = PhotoFilter.NORMAL
-            setDefaultFilterSelection()
-            renderPreview()
-        }
-
-        filterBw.setOnClickListener {
-            selectedFilter = PhotoFilter.BLACK_AND_WHITE
-            setDefaultFilterSelection()
-            renderPreview()
-        }
-
-        filterWarm.setOnClickListener {
-            selectedFilter = PhotoFilter.WARM
-            setDefaultFilterSelection()
-            renderPreview()
-        }
-
-        filterCool.setOnClickListener {
-            selectedFilter = PhotoFilter.COOL
-            setDefaultFilterSelection()
-            renderPreview()
-        }
-
-        filterVintage.setOnClickListener {
-            selectedFilter = PhotoFilter.VINTAGE
-            setDefaultFilterSelection()
-            renderPreview()
-        }
-
-        brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        brightnessSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = renderPreview()
             override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
             override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
         })
-
-        contrastSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        contrastSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = renderPreview()
             override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
             override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
         })
-
-        saturationSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        saturationSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = renderPreview()
             override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
             override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
@@ -285,165 +291,148 @@ class MainActivity : AppCompatActivity() {
     private fun updateLayerList() {
         layerListContainer.removeAllViews()
         for (layer in layers) {
-            val chip = MaterialButton(this).apply {
+            val button = MaterialButton(this).apply {
                 text = "${if (layer.visible) "✓" else "○"} ${layer.name}"
-                isSelected = layer.id == selectedLayerId
-                setOnClickListener {
-                    selectedLayerId = layer.id
-                    updateLayerList()
-                    Toast.makeText(this@MainActivity, "Selected ${layer.name}", Toast.LENGTH_SHORT).show()
-                }
+                setTextSize(10f)
                 minHeight = 0
                 height = 52
                 setPadding(18, 8, 18, 8)
-                cornerRadius = 16
-                setTextSize(11f)
+                cornerRadius = 18
+                isSelected = layer.id == selectedLayerId
                 backgroundTintList = ColorStateList.valueOf(
                     if (layer.id == selectedLayerId) ResourcesCompat.getColor(resources, R.color.accent, theme)
-                    else ResourcesCompat.getColor(resources, R.color.surface_dark, theme)
+                    else ResourcesCompat.getColor(resources, R.color.surface_variant, theme)
                 )
                 setTextColor(
                     if (layer.id == selectedLayerId) ResourcesCompat.getColor(resources, R.color.on_accent, theme)
                     else ResourcesCompat.getColor(resources, R.color.text_primary, theme)
                 )
+                setOnClickListener {
+                    selectedLayerId = layer.id
+                    updateLayerList()
+                    Toast.makeText(this@MainActivity, "Selected ${layer.name}", Toast.LENGTH_SHORT).show()
+                }
             }
-            layerListContainer.addView(chip)
+            layerListContainer.addView(button)
         }
     }
 
     private fun showThemeDialog() {
         val themes = arrayOf("Midnight", "Sunset", "Forest", "Aurora", "Classic")
         val currentIndex = themes.indexOf(currentTheme).takeIf { it >= 0 } ?: 0
-
         AlertDialog.Builder(this)
             .setTitle("Choose Theme")
-            .setSingleChoiceItems(themes, currentIndex) { dialog, selected ->
-                currentTheme = themes[selected]
+            .setSingleChoiceItems(themes, currentIndex) { dialog, which ->
+                currentTheme = themes[which]
                 applyTheme(currentTheme)
                 dialog.dismiss()
             }
             .show()
     }
 
-    private fun applyTheme(name: String) {
-        val palette = when (name) {
+    private fun applyTheme(themeName: String) {
+        val palette = when (themeName) {
             "Sunset" -> ThemePalette(
-                background = Color.parseColor("#1d0f1e"),
-                panel = Color.parseColor("#2c1a2b"),
-                imageSurface = Color.parseColor("#3a2435"),
+                background = Color.parseColor("#1d0f1c"),
+                panel = Color.parseColor("#2f1b2d"),
+                imageSurface = Color.parseColor("#402635"),
                 primary = Color.parseColor("#ff8a65"),
-                accent = Color.parseColor("#ff5f6d"),
-                highlight = Color.parseColor("#ffd166"),
-                textPrimary = Color.parseColor("#fff7fb"),
-                textSecondary = Color.parseColor("#f7d7cf"),
+                accent = Color.parseColor("#ff6f61"),
+                textPrimary = Color.parseColor("#fff6f8"),
+                textSecondary = Color.parseColor("#f9d6d3"),
                 actionText = Color.parseColor("#ffffff")
             )
             "Forest" -> ThemePalette(
                 background = Color.parseColor("#081b12"),
-                panel = Color.parseColor("#102a1d"),
-                imageSurface = Color.parseColor("#153726"),
-                primary = Color.parseColor("#4caf50"),
+                panel = Color.parseColor("#102a1c"),
+                imageSurface = Color.parseColor("#163a2a"),
+                primary = Color.parseColor("#57b65f"),
                 accent = Color.parseColor("#8bc34a"),
-                highlight = Color.parseColor("#cddc39"),
-                textPrimary = Color.parseColor("#edf7ef"),
-                textSecondary = Color.parseColor("#cfe8d6"),
+                textPrimary = Color.parseColor("#edf9ef"),
+                textSecondary = Color.parseColor("#d3ebd7"),
                 actionText = Color.parseColor("#ffffff")
             )
             "Aurora" -> ThemePalette(
-                background = Color.parseColor("#071520"),
-                panel = Color.parseColor("#0d2434"),
-                imageSurface = Color.parseColor("#123549"),
+                background = Color.parseColor("#071b28"),
+                panel = Color.parseColor("#0f2c3e"),
+                imageSurface = Color.parseColor("#163c50"),
                 primary = Color.parseColor("#00bcd4"),
-                accent = Color.parseColor("#26c6da"),
-                highlight = Color.parseColor("#7bdff2"),
-                textPrimary = Color.parseColor("#ebfdff"),
-                textSecondary = Color.parseColor("#d1f4ff"),
+                accent = Color.parseColor("#66d9ef"),
+                textPrimary = Color.parseColor("#edfaff"),
+                textSecondary = Color.parseColor("#d7f8ff"),
                 actionText = Color.parseColor("#ffffff")
             )
             "Classic" -> ThemePalette(
-                background = Color.parseColor("#121212"),
-                panel = Color.parseColor("#1d1d1d"),
+                background = Color.parseColor("#111111"),
+                panel = Color.parseColor("#1f1f1f"),
                 imageSurface = Color.parseColor("#2a2a2a"),
                 primary = Color.parseColor("#d4af37"),
-                accent = Color.parseColor("#f3d36b"),
-                highlight = Color.parseColor("#fff2b2"),
-                textPrimary = Color.parseColor("#f5f5f5"),
-                textSecondary = Color.parseColor("#e3e3e3"),
+                accent = Color.parseColor("#f6d365"),
+                textPrimary = Color.parseColor("#f8f8f8"),
+                textSecondary = Color.parseColor("#e5e5e5"),
                 actionText = Color.parseColor("#111111")
             )
             else -> ThemePalette(
-                background = Color.parseColor("#0b1020"),
-                panel = Color.parseColor("#141d2a"),
-                imageSurface = Color.parseColor("#1f2a3b"),
+                background = Color.parseColor("#0d1322"),
+                panel = Color.parseColor("#171f35"),
+                imageSurface = Color.parseColor("#1e2a42"),
                 primary = Color.parseColor("#6c63ff"),
                 accent = Color.parseColor("#8b7dff"),
-                highlight = Color.parseColor("#b0c4ff"),
                 textPrimary = Color.parseColor("#f5f8ff"),
-                textSecondary = Color.parseColor("#d7deff"),
+                textSecondary = Color.parseColor("#d8e1ff"),
                 actionText = Color.parseColor("#ffffff")
             )
         }
 
         rootLayout.setBackgroundColor(palette.background)
+        previewPanel.setBackgroundColor(palette.panel)
+        photoView.setBackgroundColor(palette.imageSurface)
+        statusText.setTextColor(palette.textSecondary)
         window.statusBarColor = palette.background
         window.navigationBarColor = palette.background
 
-        val buttonDefaults = listOf(openButton, saveButton, layerButton, selectionButton, settingsButton, addLayerButton, toggleLayerButton, removeLayerButton)
-        buttonDefaults.forEach { button ->
-            button.setBackgroundColor(palette.primary)
+        listOf(openButton, saveButton, cropButton, rotateButton, textButton, stickerButton, compareButton, addLayerButton, toggleLayerButton, deleteLayerButton, settingsButton).forEach { button ->
+            button.backgroundTintList = ColorStateList.valueOf(palette.primary)
             button.setTextColor(palette.actionText)
         }
 
-        themeMidnightButton.setBackgroundColor(if (name == "Midnight") palette.accent else palette.panel)
-        themeSunsetButton.setBackgroundColor(if (name == "Sunset") palette.accent else palette.panel)
-        themeForestButton.setBackgroundColor(if (name == "Forest") palette.accent else palette.panel)
-        themeAuroraButton.setBackgroundColor(if (name == "Aurora") palette.accent else palette.panel)
-        themeClassicButton.setBackgroundColor(if (name == "Classic") palette.accent else palette.panel)
+        themeMidnightButton.backgroundTintList = ColorStateList.valueOf(if (themeName == "Midnight") palette.accent else palette.panel)
+        themeSunsetButton.backgroundTintList = ColorStateList.valueOf(if (themeName == "Sunset") palette.accent else palette.panel)
+        themeForestButton.backgroundTintList = ColorStateList.valueOf(if (themeName == "Forest") palette.accent else palette.panel)
+        themeAuroraButton.backgroundTintList = ColorStateList.valueOf(if (themeName == "Aurora") palette.accent else palette.panel)
+        themeClassicButton.backgroundTintList = ColorStateList.valueOf(if (themeName == "Classic") palette.accent else palette.panel)
+        listOf(themeMidnightButton, themeSunsetButton, themeForestButton, themeAuroraButton, themeClassicButton).forEach { it.setTextColor(palette.actionText) }
 
-        listOf(themeMidnightButton, themeSunsetButton, themeForestButton, themeAuroraButton, themeClassicButton)
-            .forEach { it.setTextColor(palette.actionText) }
+        filterNormalButton.backgroundTintList = ColorStateList.valueOf(if (selectedFilter == PhotoFilter.NORMAL) palette.accent else palette.panel)
+        filterBwButton.backgroundTintList = ColorStateList.valueOf(if (selectedFilter == PhotoFilter.BLACK_AND_WHITE) palette.accent else palette.panel)
+        filterWarmButton.backgroundTintList = ColorStateList.valueOf(if (selectedFilter == PhotoFilter.WARM) palette.accent else palette.panel)
+        filterCoolButton.backgroundTintList = ColorStateList.valueOf(if (selectedFilter == PhotoFilter.COOL) palette.accent else palette.panel)
+        filterVintageButton.backgroundTintList = ColorStateList.valueOf(if (selectedFilter == PhotoFilter.VINTAGE) palette.accent else palette.panel)
+        listOf(filterNormalButton, filterBwButton, filterWarmButton, filterCoolButton, filterVintageButton).forEach { it.setTextColor(palette.actionText) }
 
-        filterNormal.setBackgroundColor(if (selectedFilter == PhotoFilter.NORMAL) palette.accent else palette.panel)
-        filterBw.setBackgroundColor(if (selectedFilter == PhotoFilter.BLACK_AND_WHITE) palette.accent else palette.panel)
-        filterWarm.setBackgroundColor(if (selectedFilter == PhotoFilter.WARM) palette.accent else palette.panel)
-        filterCool.setBackgroundColor(if (selectedFilter == PhotoFilter.COOL) palette.accent else palette.panel)
-        filterVintage.setBackgroundColor(if (selectedFilter == PhotoFilter.VINTAGE) palette.accent else palette.panel)
-
-        listOf(filterNormal, filterBw, filterWarm, filterCool, filterVintage)
-            .forEach { it.setTextColor(palette.actionText) }
-
-        val imageSurface = findViewById<View>(R.id.previewPanel)
-        if (imageSurface != null) {
-            imageSurface.setBackgroundColor(palette.imageSurface)
-        }
-        photoView.setBackgroundColor(palette.imageSurface)
-        selectionInfoText.setTextColor(palette.textSecondary)
         updateLayerList()
     }
 
     private fun setDefaultFilterSelection() {
-        filterNormal.isSelected = selectedFilter == PhotoFilter.NORMAL
-        filterBw.isSelected = selectedFilter == PhotoFilter.BLACK_AND_WHITE
-        filterWarm.isSelected = selectedFilter == PhotoFilter.WARM
-        filterCool.isSelected = selectedFilter == PhotoFilter.COOL
-        filterVintage.isSelected = selectedFilter == PhotoFilter.VINTAGE
-        setButtonStyle(filterNormal)
-        setButtonStyle(filterBw)
-        setButtonStyle(filterWarm)
-        setButtonStyle(filterCool)
-        setButtonStyle(filterVintage)
+        filterNormalButton.isSelected = selectedFilter == PhotoFilter.NORMAL
+        filterBwButton.isSelected = selectedFilter == PhotoFilter.BLACK_AND_WHITE
+        filterWarmButton.isSelected = selectedFilter == PhotoFilter.WARM
+        filterCoolButton.isSelected = selectedFilter == PhotoFilter.COOL
+        filterVintageButton.isSelected = selectedFilter == PhotoFilter.VINTAGE
+        setFilterButtonStyle(filterNormalButton)
+        setFilterButtonStyle(filterBwButton)
+        setFilterButtonStyle(filterWarmButton)
+        setFilterButtonStyle(filterCoolButton)
+        setFilterButtonStyle(filterVintageButton)
     }
 
-    private fun setButtonStyle(button: MaterialButton) {
-        val isSelected = button.isSelected
-        button.setBackgroundColor(
-            if (isSelected) ResourcesCompat.getColor(resources, R.color.accent, theme)
-            else ResourcesCompat.getColor(resources, R.color.surface_dark, theme)
+    private fun setFilterButtonStyle(button: MaterialButton) {
+        val selected = button.isSelected
+        button.backgroundTintList = ColorStateList.valueOf(
+            if (selected) ResourcesCompat.getColor(resources, R.color.accent, theme)
+            else ResourcesCompat.getColor(resources, R.color.surface_variant, theme)
         )
-        button.setTextColor(
-            if (isSelected) ResourcesCompat.getColor(resources, R.color.on_accent, theme)
-            else ResourcesCompat.getColor(resources, R.color.text_primary, theme)
-        )
+        button.setTextColor(ResourcesCompat.getColor(resources, R.color.on_accent, theme))
     }
 
     private fun renderPreview() {
@@ -451,27 +440,20 @@ class MainActivity : AppCompatActivity() {
             photoView.setImageDrawable(ResourcesCompat.getDrawable(resources, R.drawable.ic_photo_editor, theme))
             return
         }
-        val editedBitmap = renderEditedBitmap(originalBitmap)
-        if (editedBitmap != null) {
-            photoView.setImageBitmap(editedBitmap)
+        val displayBitmap = if (compareMode) originalBitmap else renderEditedBitmap(originalBitmap)
+        if (displayBitmap != null) {
+            photoView.setImageBitmap(displayBitmap)
         }
     }
 
     private fun renderEditedBitmap(source: Bitmap?): Bitmap? {
         if (source == null) return null
-
-        val bitmap = if (currentRotation == 0) {
-            source.copy(Bitmap.Config.ARGB_8888, true)
-        } else {
-            rotateBitmap(source, currentRotation.toFloat())
-        }
-
-        val brightnessOffset = brightnessSeekBar.progress - 100
-        val contrastValue = contrastSeekBar.progress / 100f
-        val saturationValue = saturationSeekBar.progress / 100f
+        val bitmap = if (currentRotation == 0) source.copy(Bitmap.Config.ARGB_8888, true) else rotateBitmap(source, currentRotation.toFloat())
+        val brightnessOffset = brightnessSeek.progress - 100
+        val contrastValue = contrastSeek.progress / 100f
+        val saturationValue = saturationSeek.progress / 100f
 
         val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-
         for (y in 0 until bitmap.height) {
             for (x in 0 until bitmap.width) {
                 val pixel = bitmap.getPixel(x, y)
@@ -483,9 +465,7 @@ class MainActivity : AppCompatActivity() {
                 when (selectedFilter) {
                     PhotoFilter.BLACK_AND_WHITE -> {
                         val gray = (red * 0.299 + green * 0.587 + blue * 0.114).roundToInt()
-                        red = gray
-                        green = gray
-                        blue = gray
+                        red = gray; green = gray; blue = gray
                     }
                     PhotoFilter.WARM -> {
                         red = (red * 1.12f).toInt().coerceIn(0, 255)
@@ -499,12 +479,9 @@ class MainActivity : AppCompatActivity() {
                     }
                     PhotoFilter.VINTAGE -> {
                         val r = red.toFloat(); val g = green.toFloat(); val b = blue.toFloat()
-                        val newRed = (r * 0.94f + g * 0.76f + b * 0.53f).toInt().coerceIn(0, 255)
-                        val newGreen = (r * 0.63f + g * 0.55f + b * 0.44f).toInt().coerceIn(0, 255)
-                        val newBlue = (r * 0.47f + g * 0.40f + b * 0.36f).toInt().coerceIn(0, 255)
-                        red = newRed
-                        green = newGreen
-                        blue = newBlue
+                        red = (r * 0.94f + g * 0.76f + b * 0.53f).toInt().coerceIn(0, 255)
+                        green = (r * 0.63f + g * 0.55f + b * 0.44f).toInt().coerceIn(0, 255)
+                        blue = (r * 0.47f + g * 0.40f + b * 0.36f).toInt().coerceIn(0, 255)
                     }
                     PhotoFilter.NORMAL -> Unit
                 }
@@ -527,7 +504,6 @@ class MainActivity : AppCompatActivity() {
                 output.setPixel(x, y, Color.argb(alpha, red, green, blue))
             }
         }
-
         return output
     }
 
@@ -537,32 +513,97 @@ class MainActivity : AppCompatActivity() {
         return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
     }
 
-    private fun saveBitmapToGallery(bitmap: Bitmap) {
-        val fileName = "pe_photo_${System.currentTimeMillis()}.png"
+    private fun cropSquare(source: Bitmap): Bitmap {
+        val size = source.width.coerceAtMost(source.height)
+        val x = ((source.width - size) / 2f).toInt()
+        val y = ((source.height - size) / 2f).toInt()
+        return Bitmap.createBitmap(source, x, y, size, size)
+    }
 
+    private fun addTextOverlay(text: String) {
+        val base = renderEditedBitmap(originalBitmap) ?: return
+        val overlay = base.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(overlay)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textSize = (overlay.width * 0.12f)
+            isFakeBoldText = true
+            textAlign = Paint.Align.CENTER
+            alpha = 220
+        }
+        canvas.drawText(text, overlay.width * 0.5f, overlay.height * 0.25f, paint)
+        originalBitmap = overlay
+        renderPreview()
+        Toast.makeText(this, "Text overlay applied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun addStickerOverlay() {
+        val base = renderEditedBitmap(originalBitmap) ?: return
+        val overlay = base.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(overlay)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#66d9ef")
+            style = Paint.Style.FILL
+        }
+        val cx = overlay.width * 0.75f
+        val cy = overlay.height * 0.75f
+        val radius = overlay.width * 0.1f
+        canvas.drawCircle(cx, cy, radius, paint)
+        val inner = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            alpha = 180
+        }
+        canvas.drawCircle(cx, cy, radius * 0.38f, inner)
+        originalBitmap = overlay
+        renderPreview()
+        Toast.makeText(this, "Sticker overlay applied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showExportDialog() {
+        if (originalBitmap == null) {
+            Toast.makeText(this, "Load an image before exporting", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val options = arrayOf("PNG", "JPEG", "WEBP")
+        AlertDialog.Builder(this)
+            .setTitle("Export Format")
+            .setItems(options) { dialog, which ->
+                val outputFormat = when (which) {
+                    0 -> Bitmap.CompressFormat.PNG
+                    1 -> Bitmap.CompressFormat.JPEG
+                    else -> Bitmap.CompressFormat.WEBP
+                }
+                saveBitmapToGallery(renderEditedBitmap(originalBitmap)!!, outputFormat)
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun saveBitmapToGallery(bitmap: Bitmap, format: Bitmap.CompressFormat = Bitmap.CompressFormat.PNG) {
+        val fileName = "PE_photo_${System.currentTimeMillis()}${when (format) { Bitmap.CompressFormat.PNG -> ".png"; Bitmap.CompressFormat.JPEG -> ".jpg"; else -> ".webp" }}"
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+            put(MediaStore.MediaColumns.MIME_TYPE, when (format) {
+                Bitmap.CompressFormat.PNG -> "image/png"
+                Bitmap.CompressFormat.JPEG -> "image/jpeg"
+                else -> "image/webp"
+            })
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/PEPhotoEditor")
             }
         }
-
-        val resolver = contentResolver
-        val uri: Uri? = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-
+        val uri: Uri? = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
         if (uri == null) {
-            Toast.makeText(this, "Unable to create image file", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Unable to create export file", Toast.LENGTH_SHORT).show()
             return
         }
-
         try {
-            val output: OutputStream? = resolver.openOutputStream(uri)
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+            val output: OutputStream? = contentResolver.openOutputStream(uri)
+            bitmap.compress(format, 100, output)
             output?.close()
-            Toast.makeText(this, "Image saved to gallery", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Export saved to gallery", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "Failed to save image: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Failed to export image: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 }

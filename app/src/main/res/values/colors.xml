@@ -15,7 +15,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="18dp"
+            android:layout_marginBottom="14dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -55,6 +55,16 @@
                 android:src="@drawable/ic_photo_editor" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="Ready • Full Frame"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -83,24 +93,73 @@
                 android:textAllCaps="false" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/layerButton"
+                android:id="@+id/cropButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="6dp"
                 android:layout_weight="1"
-                android:backgroundTint="@color/accent"
-                android:text="Layers"
+                android:backgroundTint="@color/primary"
+                android:text="Crop"
                 android:textAllCaps="false" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/selectionButton"
+                android:id="@+id/rotateButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:backgroundTint="@color/secondary"
-                android:text="Select"
+                android:text="Rotate"
                 android:textAllCaps="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:weightSum="4">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/textButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/primary"
+                android:text="Text"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/stickerButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="6dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/primary"
+                android:text="Sticker"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/compareButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="6dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/secondary"
+                android:text="Compare"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/settingsButtonAlt"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/primary"
+                android:text="Style"
+                android:textAllCaps="false"
+                android:visibility="gone" />
         </LinearLayout>
 
         <LinearLayout
@@ -144,7 +203,7 @@
                     android:text="Toggle" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/removeLayerButton"
+                    android:id="@+id/deleteLayerButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
@@ -159,76 +218,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:orientation="vertical" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:background="@color/surface_dark"
-            android:orientation="vertical"
-            android:padding="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Theme Studio"
-                android:textColor="@color/text_primary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal"
-                android:weightSum="5">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/themeMidnight"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="4dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/primary"
-                    android:text="Midnight" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/themeSunset"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="4dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/surface_variant"
-                    android:text="Sunset" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/themeForest"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="4dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/surface_variant"
-                    android:text="Forest" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/themeAurora"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="4dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/surface_variant"
-                    android:text="Aurora" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/themeClassic"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/surface_variant"
-                    android:text="Classic" />
-            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -265,7 +254,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="12dp"
                 android:text="Contrast"
                 android:textColor="@color/text_primary"
                 android:textSize="16sp" />
@@ -280,7 +269,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="12dp"
                 android:text="Saturation"
                 android:textColor="@color/text_primary"
                 android:textSize="16sp" />
@@ -363,15 +352,74 @@
             </LinearLayout>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/selectionInfoText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:gravity="center"
-            android:text="Selection: Full Frame"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:layout_marginTop="20dp"
+            android:background="@color/surface_dark"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Theme Studio"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:weightSum="5">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/themeMidnight"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/primary"
+                    android:text="Midnight" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/themeSunset"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/surface_variant"
+                    android:text="Sunset" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/themeForest"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/surface_variant"
+                    android:text="Forest" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/themeAurora"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/surface_variant"
+                    android:text="Aurora" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/themeClassic"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/surface_variant"
+                    android:text="Classic" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>
