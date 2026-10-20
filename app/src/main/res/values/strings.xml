@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#FF6B6B</color>
-    <color name="accent">#FF8A65</color>
-    <color name="background">#121212</color>
-    <color name="surface_dark">#1E1E1E</color>
-    <color name="text_primary">#F5F5F5</color>
-    <color name="on_accent">#FFFFFF</color>
+    <color name="background">#0b1020</color>
+    <color name="surface_dark">#141d2a</color>
+    <color name="surface_variant">#1d2a3a</color>
+    <color name="image_surface">#1f2a3b</color>
+    <color name="primary">#6c63ff</color>
+    <color name="accent">#8b7dff</color>
+    <color name="secondary">#5ec3ff</color>
+    <color name="error">#ff4d6d</color>
+    <color name="text_primary">#f5f8ff</color>
+    <color name="text_secondary">#d7deff</color>
+    <color name="on_accent">#ffffff</color>
 </resources>
