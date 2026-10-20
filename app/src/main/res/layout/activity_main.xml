@@ -1,0 +1,325 @@
+package com.broken.photoeditor
+
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.Matrix
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.provider.MediaStore
+import android.widget.ImageView
+import android.widget.SeekBar
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.res.ResourcesCompat
+import com.google.android.material.button.MaterialButton
+import java.io.InputStream
+import java.io.OutputStream
+import kotlin.math.roundToInt
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var imageView: ImageView
+    private lateinit var openButton: MaterialButton
+    private lateinit var saveButton: MaterialButton
+    private lateinit var resetButton: MaterialButton
+    private lateinit var rotateButton: MaterialButton
+    private lateinit var filterNormal: MaterialButton
+    private lateinit var filterBw: MaterialButton
+    private lateinit var filterWarm: MaterialButton
+    private lateinit var filterCool: MaterialButton
+    private lateinit var filterVintage: MaterialButton
+    private lateinit var brightnessSeekBar: SeekBar
+    private lateinit var contrastSeekBar: SeekBar
+    private lateinit var saturationSeekBar: SeekBar
+
+    private enum class PhotoFilter {
+        NORMAL, BLACK_AND_WHITE, WARM, COOL, VINTAGE
+    }
+
+    private var originalBitmap: Bitmap? = null
+    private var selectedFilter: PhotoFilter = PhotoFilter.NORMAL
+    private var currentRotation = 0
+
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri == null) {
+            Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+
+        try {
+            val inputStream: InputStream? = contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+
+            if (bitmap != null) {
+                originalBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+                currentRotation = 0
+                renderPreview()
+                Toast.makeText(this, "Image loaded successfully", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Could not open the selected image", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Image open failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        bindViews()
+        setupListeners()
+        setDefaultFilterSelection()
+        brightnessSeekBar.progress = 100
+        contrastSeekBar.progress = 100
+        saturationSeekBar.progress = 100
+        renderPreview()
+    }
+
+    private fun bindViews() {
+        imageView = findViewById(R.id.photoView)
+        openButton = findViewById(R.id.openButton)
+        saveButton = findViewById(R.id.saveButton)
+        resetButton = findViewById(R.id.resetButton)
+        rotateButton = findViewById(R.id.rotateButton)
+        filterNormal = findViewById(R.id.filterNormal)
+        filterBw = findViewById(R.id.filterBlackWhite)
+        filterWarm = findViewById(R.id.filterWarm)
+        filterCool = findViewById(R.id.filterCool)
+        filterVintage = findViewById(R.id.filterVintage)
+        brightnessSeekBar = findViewById(R.id.brightnessSeekBar)
+        contrastSeekBar = findViewById(R.id.contrastSeekBar)
+        saturationSeekBar = findViewById(R.id.saturationSeekBar)
+    }
+
+    private fun setupListeners() {
+        openButton.setOnClickListener { pickImage.launch("image/*") }
+
+        saveButton.setOnClickListener {
+            val bitmap = renderEditedBitmap(originalBitmap)
+            if (bitmap != null) {
+                saveBitmapToGallery(bitmap)
+            } else {
+                Toast.makeText(this, "Load an image before saving", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        resetButton.setOnClickListener {
+            brightnessSeekBar.progress = 100
+            contrastSeekBar.progress = 100
+            saturationSeekBar.progress = 100
+            currentRotation = 0
+            selectedFilter = PhotoFilter.NORMAL
+            setDefaultFilterSelection()
+            renderPreview()
+        }
+
+        rotateButton.setOnClickListener {
+            if (originalBitmap == null) {
+                Toast.makeText(this, "Open an image first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            currentRotation = (currentRotation + 90) % 360
+            renderPreview()
+        }
+
+        filterNormal.setOnClickListener {
+            selectedFilter = PhotoFilter.NORMAL
+            setDefaultFilterSelection()
+            renderPreview()
+        }
+
+        filterBw.setOnClickListener {
+            selectedFilter = PhotoFilter.BLACK_AND_WHITE
+            setButtonStyle(filterBw)
+            renderPreview()
+        }
+
+        filterWarm.setOnClickListener {
+            selectedFilter = PhotoFilter.WARM
+            setButtonStyle(filterWarm)
+            renderPreview()
+        }
+
+        filterCool.setOnClickListener {
+            selectedFilter = PhotoFilter.COOL
+            setButtonStyle(filterCool)
+            renderPreview()
+        }
+
+        filterVintage.setOnClickListener {
+            selectedFilter = PhotoFilter.VINTAGE
+            setButtonStyle(filterVintage)
+            renderPreview()
+        }
+
+        brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = renderPreview()
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
+
+        contrastSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = renderPreview()
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
+
+        saturationSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = renderPreview()
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
+    }
+
+    private fun setDefaultFilterSelection() {
+        filterNormal.isSelected = selectedFilter == PhotoFilter.NORMAL
+        filterBw.isSelected = selectedFilter == PhotoFilter.BLACK_AND_WHITE
+        filterWarm.isSelected = selectedFilter == PhotoFilter.WARM
+        filterCool.isSelected = selectedFilter == PhotoFilter.COOL
+        filterVintage.isSelected = selectedFilter == PhotoFilter.VINTAGE
+        setButtonStyle(filterNormal)
+        setButtonStyle(filterBw)
+        setButtonStyle(filterWarm)
+        setButtonStyle(filterCool)
+        setButtonStyle(filterVintage)
+    }
+
+    private fun setButtonStyle(button: MaterialButton) {
+        val isSelected = button.isSelected
+        button.setBackgroundColor(
+            if (isSelected) ResourcesCompat.getColor(resources, R.color.accent, theme)
+            else ResourcesCompat.getColor(resources, R.color.surface_dark, theme)
+        )
+        button.setTextColor(
+            if (isSelected) ResourcesCompat.getColor(resources, R.color.on_accent, theme)
+            else ResourcesCompat.getColor(resources, R.color.text_primary, theme)
+        )
+    }
+
+    private fun renderPreview() {
+        if (originalBitmap == null) {
+            imageView.setImageDrawable(ResourcesCompat.getDrawable(resources, R.drawable.ic_photo_editor, theme))
+            return
+        }
+        val editedBitmap = renderEditedBitmap(originalBitmap)
+        if (editedBitmap != null) {
+            imageView.setImageBitmap(editedBitmap)
+        }
+    }
+
+    private fun renderEditedBitmap(source: Bitmap?): Bitmap? {
+        if (source == null) return null
+
+        val bitmap = if (currentRotation == 0) {
+            source.copy(Bitmap.Config.ARGB_8888, true)
+        } else {
+            rotateBitmap(source, currentRotation.toFloat())
+        }
+
+        val brightnessOffset = brightnessSeekBar.progress - 100
+        val contrastValue = contrastSeekBar.progress / 100f
+        val saturationValue = saturationSeekBar.progress / 100f
+
+        val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+
+        for (y in 0 until bitmap.height) {
+            for (x in 0 until bitmap.width) {
+                val pixel = bitmap.getPixel(x, y)
+                var red = Color.red(pixel)
+                var green = Color.green(pixel)
+                var blue = Color.blue(pixel)
+                val alpha = Color.alpha(pixel)
+
+                when (selectedFilter) {
+                    PhotoFilter.BLACK_AND_WHITE -> {
+                        val gray = (red * 0.299 + green * 0.587 + blue * 0.114).roundToInt()
+                        red = gray
+                        green = gray
+                        blue = gray
+                    }
+                    PhotoFilter.WARM -> {
+                        red = (red * 1.12f).toInt().coerceIn(0, 255)
+                        green = (green * 1.06f).toInt().coerceIn(0, 255)
+                        blue = (blue * 0.90f).toInt().coerceIn(0, 255)
+                    }
+                    PhotoFilter.COOL -> {
+                        red = (red * 0.92f).toInt().coerceIn(0, 255)
+                        green = (green * 0.98f).toInt().coerceIn(0, 255)
+                        blue = (blue * 1.18f).toInt().coerceIn(0, 255)
+                    }
+                    PhotoFilter.VINTAGE -> {
+                        val r = red.toFloat(); val g = green.toFloat(); val b = blue.toFloat()
+                        val newRed = (r * 0.94f + g * 0.76f + b * 0.53f).toInt().coerceIn(0, 255)
+                        val newGreen = (r * 0.63f + g * 0.55f + b * 0.44f).toInt().coerceIn(0, 255)
+                        val newBlue = (r * 0.47f + g * 0.40f + b * 0.36f).toInt().coerceIn(0, 255)
+                        red = newRed
+                        green = newGreen
+                        blue = newBlue
+                    }
+                    PhotoFilter.NORMAL -> Unit
+                }
+
+                val brightnessFactor = brightnessOffset
+                red = (red + brightnessFactor).coerceIn(0, 255)
+                green = (green + brightnessFactor).coerceIn(0, 255)
+                blue = (blue + brightnessFactor).coerceIn(0, 255)
+
+                val contrastFactor = if (contrastValue == 0f) 1f else (259f * (contrastValue * 255f + 255f)) / (255f * (259f - contrastValue * 255f))
+                red = ((contrastFactor * (red - 128) + 128)).toInt().coerceIn(0, 255)
+                green = ((contrastFactor * (green - 128) + 128)).toInt().coerceIn(0, 255)
+                blue = ((contrastFactor * (blue - 128) + 128)).toInt().coerceIn(0, 255)
+
+                val luminance = red * 0.299f + green * 0.587f + blue * 0.114f
+                val saturationFactor = saturationValue
+                red = ((luminance + (red - luminance) * saturationFactor)).toInt().coerceIn(0, 255)
+                green = ((luminance + (green - luminance) * saturationFactor)).toInt().coerceIn(0, 255)
+                blue = ((luminance + (blue - luminance) * saturationFactor)).toInt().coerceIn(0, 255)
+
+                output.setPixel(x, y, Color.argb(alpha, red, green, blue))
+            }
+        }
+
+        return output
+    }
+
+    private fun rotateBitmap(source: Bitmap, degrees: Float): Bitmap {
+        val matrix = Matrix()
+        matrix.postRotate(degrees)
+        return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
+    }
+
+    private fun saveBitmapToGallery(bitmap: Bitmap) {
+        val fileName = "pe_photo_${System.currentTimeMillis()}.png"
+
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/PEPhotoEditor")
+            }
+        }
+
+        val resolver = contentResolver
+        val uri: Uri? = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+        if (uri == null) {
+            Toast.makeText(this, "Unable to create image file", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val output: OutputStream? = resolver.openOutputStream(uri)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+            output?.close()
+            Toast.makeText(this, "Image saved to gallery", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to save image: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+}
